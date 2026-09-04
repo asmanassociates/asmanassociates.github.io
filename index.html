@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asman Associates</title>
+<meta name="description" content="Asman — закрытая операционная структура дистрибуции. Вход по приглашению или после верификации.">
+<meta name="theme-color" content="#0A0D11">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0D11;
+    --panel:#0D1115;
+    --ink:#E8E6E0;
+    --ink-dim:#878D95;
+    --ink-faint:#565B61;
+    --line:rgba(232,230,224,.10);
+    --line-strong:rgba(232,230,224,.18);
+    --accent:#5C7A99;
+    --serif:Georgia,"Iowan Old Style","Times New Roman",serif;
+    --sans:Inter,"Helvetica Neue",Arial,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--ink);font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  }
+  button,[role=button],.cta{cursor:pointer}
+  .sky{
+    position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(ellipse 900px 500px at 75% 8%, rgba(92,122,153,.09), transparent 60%),
+      radial-gradient(ellipse 700px 400px at 15% 92%, rgba(92,122,153,.05), transparent 60%);
+  }
+  header{
+    position:sticky;top:0;z-index:10;
+    display:flex;justify-content:space-between;align-items:center;
+    padding:20px 56px;
+    background:rgba(10,13,17,.86);backdrop-filter:blur(6px);
+    border-bottom:1px solid var(--line);
+  }
+  .lockup{text-decoration:none;color:#fff;display:flex;flex-direction:column;align-items:flex-start}
+  .aa{
+    position:relative;display:block;width:1.42em;height:.86em;
+    font-family:"Bodoni Moda",Georgia,serif;font-weight:400;font-size:28px;line-height:1;color:#fff;z-index:2;
+  }
+  .aa span{position:absolute;top:0;left:0}
+  .aa .a2{left:.42em}
+  .lockup-name{
+    margin-top:8px;font-size:8px;letter-spacing:.42em;text-transform:uppercase;
+    padding-right:.42em;color:#fff;font-weight:400;
+  }
+  nav{display:flex;gap:32px;flex-wrap:wrap;justify-content:flex-end}
+  nav a{
+    font-size:13px;color:var(--ink-dim);text-decoration:none;
+    border-bottom:1px solid transparent;
+  }
+  nav a:hover{color:var(--ink);border-color:var(--line-strong)}
+  section{position:relative;z-index:1;padding:120px 56px;max-width:1100px;margin:0 auto}
+  .hero{padding-top:100px;padding-bottom:140px}
+  .hero-aa{
+    position:relative;z-index:3;display:block;width:1.42em;height:.86em;
+    font-family:"Bodoni Moda",Georgia,serif;font-weight:400;
+    font-size:clamp(72px,14vw,140px);line-height:1;color:#fff;margin-bottom:28px;
+  }
+  .hero-aa span{position:absolute;top:0;left:0}
+  .hero-aa .a2{left:.42em}
+  .hero h1{
+    font-family:var(--serif);font-weight:400;
+    font-size:clamp(28px,4.4vw,50px);line-height:1.18;letter-spacing:-.01em;
+    width:100%;margin-bottom:26px;
+  }
+  .hero p{font-size:16px;line-height:1.75;color:var(--ink-dim);max-width:520px;margin-bottom:40px}
+  .cta{
+    display:inline-block;font-size:14px;color:var(--ink);text-decoration:none;
+    padding:14px 28px;border:1px solid var(--line-strong);background:transparent;font-family:var(--sans);
+  }
+  .cta:hover{border-color:var(--accent);background:rgba(92,122,153,.08)}
+  .section-head{
+    display:flex;align-items:baseline;gap:16px;margin-bottom:48px;
+    border-bottom:1px solid var(--line);padding-bottom:20px;
+  }
+  .section-num{font-family:var(--serif);font-size:13px;color:var(--ink-faint)}
+  .section-title{font-family:var(--serif);font-size:26px;font-weight:400}
+  .who-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:64px}
+  .who-grid p{font-size:15px;line-height:1.85;color:var(--ink-dim);margin-bottom:20px}
+  .who-grid strong{color:var(--ink);font-weight:500}
+  .constraints{border-left:1px solid var(--line-strong);padding-left:28px}
+  .constraints div{
+    display:flex;justify-content:space-between;gap:16px;
+    padding:14px 0;border-bottom:1px solid var(--line);font-size:14px;
+  }
+  .constraints div:first-child{padding-top:0}
+  .constraints span:first-child{color:var(--ink-dim)}
+  blockquote{
+    max-width:100%;border-left:1px solid var(--line-strong);padding-left:28px;
+    font-family:var(--serif);font-size:clamp(18px,2.2vw,22px);line-height:1.5;
+  }
+  .offer-note{margin-top:28px;max-width:640px;font-size:15px;line-height:1.85;color:var(--ink-dim)}
+  .op-item{
+    display:grid;grid-template-columns:220px 1fr;gap:40px;
+    padding:28px 0;border-bottom:1px solid var(--line);
+  }
+  .op-item:last-child{border-bottom:none}
+  .op-label{font-family:var(--serif);font-size:16px}
+  .op-desc{font-size:14.5px;line-height:1.8;color:var(--ink-dim);max-width:620px}
+  .stat-row{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);
+    margin-top:56px;border:1px solid var(--line);
+  }
+  .stat{background:var(--panel);padding:30px 28px}
+  .stat-value{font-family:var(--serif);font-size:28px;margin-bottom:8px}
+  .stat-label{font-size:12.5px;color:var(--ink-dim)}
+  .engine-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+  .engine-item{background:var(--panel);padding:32px 28px}
+  .engine-n{font-family:var(--serif);font-size:13px;color:var(--ink-faint);margin-bottom:16px}
+  .engine-item h3{font-family:var(--serif);font-size:18px;font-weight:400;margin-bottom:12px}
+  .engine-item p{font-size:14px;line-height:1.7;color:var(--ink-dim)}
+  .verify-intro{font-size:15px;line-height:1.85;color:var(--ink-dim);max-width:620px;margin-bottom:48px}
+  .verify-intro strong{color:var(--ink);font-weight:500}
+  .field{
+    display:grid;grid-template-columns:260px 1fr;gap:24px;align-items:end;
+    padding:20px 0;border-bottom:1px solid var(--line);
+  }
+  .field label{font-size:14px;color:var(--ink-dim)}
+  .field input{
+    background:transparent;border:none;border-bottom:1px solid var(--line-strong);
+    color:var(--ink);font-family:var(--sans);font-size:15px;padding:6px 0;outline:none;width:100%;
+  }
+  .field input:focus{border-color:var(--accent)}
+  .field input::placeholder{color:var(--ink-faint)}
+  .verify-submit{margin-top:40px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:20px}
+  .verify-contacts{font-size:13px;color:var(--ink-dim)}
+  .verify-contacts a{color:var(--ink-dim);text-decoration:none}
+  footer{position:relative;z-index:1;border-top:1px solid var(--line);padding:40px 56px}
+  .disclaimer{max-width:720px;font-size:12.5px;line-height:1.8;color:var(--ink-faint);margin-bottom:28px}
+  .foot-bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--ink-faint)}
+  .hint{margin-top:16px;font-size:12.5px;color:var(--ink-dim)}
+  @media (max-width:860px){
+    header,section,footer{padding-left:24px;padding-right:24px}
+    .who-grid,.op-item,.stat-row,.field,.engine-grid{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+<div class="sky"></div>
+<header>
+  <a class="lockup" href="#top" aria-label="Asman Associates">
+    <span class="aa" aria-hidden="true"><span>A</span><span class="a2">A</span></span>
+    <span class="lockup-name">Asman Associates</span>
+  </a>
+  <nav>
+    <a href="#who">Structure</a>
+    <a href="#logic">Logic</a>
+    <a href="#engine">Engine</a>
+    <a href="#verify">Verification</a>
+  </nav>
+</header>
+
+<section class="hero" id="top">
+  <div class="hero-aa" aria-hidden="true"><span>A</span><span class="a2">A</span></div>
+  <h1>Дистрибуция — это инфраструктура, а не услуга.</h1>
+  <p>Закрытая структура. Продажи ограниченного числа принципалов. Вход — по приглашению или после верификации.</p>
+  <a class="cta" href="#verify">Пройти верификацию</a>
+</section>
+
+<section id="who">
+  <div class="section-head"><span class="section-num">01</span><span class="section-title">Who We Are</span></div>
+  <div class="who-grid">
+    <div>
+      <p>Структура действует на стыке трёх ролей: скаута, отбирающего продукт до того, как о нём узнает рынок; продюсера, выстраивающего процесс превращения интереса в оплаченную сделку; и инвестора — не капитала, но навыка и инфраструктуры дистрибуции, вносимых в проект без предоплаты со стороны принципала.</p>
+      <p>Продукт или услуга принципала должны быть уже сформированы и подтверждены рынком. <strong>Единственный дефицит, который структура закрывает — отсутствие системной дистрибуции.</strong> Маркетинговая доработка продукта, обучение персонала и операционный консалтинг — вне периметра работы.</p>
+      <p>Количество одновременных мандатов ограничено физически, а не маркетингово.</p>
+    </div>
+    <div class="constraints">
+      <div><span>Активных мандатов</span><span>≤ 3</span></div>
+      <div><span>Отраслевой фокус</span><span>Premium B2B / B2C</span></div>
+      <div><span>Публичный портфель</span><span>Отсутствует</span></div>
+      <div><span>Модель входа</span><span>По приглашению</span></div>
+      <div><span>Предоплата со стороны принципала</span><span>0</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="offer">
+  <div class="section-head"><span class="section-num">02</span><span class="section-title">The Offer</span></div>
+  <blockquote>Ноль фикса. Мы за свой счёт строим ИИ-лидогенерацию и закрываем премиальных клиентов. Чистую прибыль от приведённых сделок делим 50/50 или 30/70 — по нише.</blockquote>
+  <p class="offer-note">Для принципала — нулевой финансовый риск. Мы не агентство: нет штата, нет массового набора. Максимум два–три мандата одновременно.</p>
+</section>
+
+<section id="logic">
+  <div class="section-head"><span class="section-num">03</span><span class="section-title">Operational Logic & Revenue Model</span></div>
+  <div class="op-item"><div class="op-label">Zero Management Fee</div><div class="op-desc">Абонентская плата, оплата за настройку, почасовая тарификация — отсутствуют как класс. Доход формируется исключительно на стороне результата.</div></div>
+  <div class="op-item"><div class="op-label">Revenue Share</div><div class="op-desc">Вознаграждение рассчитывается от чистой прибыли по сделкам, привлечённым структурой. Пропорция раздела — в диапазоне 30/70–50/50, фиксируется на этапе due diligence ниши и не пересматривается в одностороннем порядке.</div></div>
+  <div class="op-item"><div class="op-label">AI Lead Filtration</div><div class="op-desc">Проприетарная инфраструктура на базе GPT / Claude API обрабатывает входящий трафик в WhatsApp и Telegram, верифицирует бюджет и намерение до контакта с closing-контуром. Порядка 90% нецелевого шума отсекается автоматически, без участия человека.</div></div>
+  <div class="op-item"><div class="op-label">Sales Execution</div><div class="op-desc">Закрытие сделок ведётся напрямую. Делегирование колл-центрам, младшим менеджерам или сторонним подрядчикам не предусмотрено.</div></div>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-value">$2,000–$10,000</div><div class="stat-label">Целевой чек по сделке</div></div>
+    <div class="stat"><div class="stat-value">$1,000–$5,000</div><div class="stat-label">Операционная маржа на транзакцию</div></div>
+    <div class="stat"><div class="stat-value">~90%</div><div class="stat-label">Отсечение нецелевого трафика</div></div>
+  </div>
+</section>
+
+<section id="engine">
+  <div class="section-head"><span class="section-num">04</span><span class="section-title">Engine</span></div>
+  <div class="engine-grid">
+    <article class="engine-item"><div class="engine-n">01</div><h3>Трафик</h3><p>Снайперские кампании на узкую платёжеспособную аудиторию. Не массовый охват.</p></article>
+    <article class="engine-item"><div class="engine-n">02</div><h3>ИИ-квалификация</h3><p>Агент в WhatsApp и Telegram проверяет боль, бюджет и намерение. Человеку — только горячие.</p></article>
+    <article class="engine-item"><div class="engine-n">03</div><h3>Закрытие</h3><p>Прямой звонок или переписка. High-ticket закрывается лично, без колл-центра.</p></article>
+    <article class="engine-item"><div class="engine-n">04</div><h3>Учёт</h3><p>Жёсткий контур затрат, чистой прибыли и доли. Без абонентской дымки.</p></article>
+  </div>
+</section>
+
+<section id="verify">
+  <div class="section-head"><span class="section-num">05</span><span class="section-title">Verification</span></div>
+  <p class="verify-intro">Структура не работает с массовым рынком. Рассмотрение начинается только после формы ниже. <strong>Отсутствие ответа в течение 5 рабочих дней равнозначно отказу.</strong></p>
+  <form id="verifyForm">
+    <div class="field"><label for="niche">Ниша / продукт</label><input id="niche" name="niche" placeholder="Например: private wealth management"></div>
+    <div class="field"><label for="ticket">Средний чек за сделку</label><input id="ticket" name="ticket" placeholder="в $"></div>
+    <div class="field"><label for="revenue">Оборот за последние 3 месяца</label><input id="revenue" name="revenue" placeholder="в $"></div>
+    <div class="field"><label for="margin">Валовая маржинальность</label><input id="margin" name="margin" placeholder="в %"></div>
+    <div class="field"><label for="contact">Контакт для связи</label><input id="contact" name="contact" placeholder="Telegram / email"></div>
+    <div class="verify-submit">
+      <button class="cta" type="submit" id="submitBtn">Отправить на рассмотрение</button>
+      <div class="verify-contacts">
+        <a href="mailto:contact@asmanassociates.com">contact@asmanassociates.com</a>
+        ·
+        <a href="tel:+77472225859">+7 747 222 58 59</a>
+      </div>
+    </div>
+    <p class="hint" id="sentHint" hidden>Откроется почтовый клиент. Если нет — напишите на contact@asmanassociates.com.</p>
+  </form>
+</section>
+
+<footer>
+  <div class="disclaimer">Материалы на странице не являются публичной офертой. Партнёрство не осуществляет набор клиентов на массовой основе и не рассматривает заявки вне формы верификации. Решение о взаимодействии принимается в одностороннем порядке по итогам due diligence и может быть отклонено без объяснения причин.</div>
+  <div class="foot-bottom">
+    <span>© Asman · asmanassociates.com</span>
+    <span>+7 747 222 58 59 · Алматы</span>
+  </div>
+</footer>
+<script>
+document.getElementById('verifyForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var d = new FormData(this);
+  var body = [
+    'Ниша: ' + (d.get('niche') || '—'),
+    'Средний чек: ' + (d.get('ticket') || '—'),
+    'Оборот за 3 мес: ' + (d.get('revenue') || '—'),
+    'Маржинальность: ' + (d.get('margin') || '—'),
+    'Контакт: ' + (d.get('contact') || '—')
+  ].join('\r\n');
+  window.location.href = 'mailto:contact@asmanassociates.com?subject=' + encodeURIComponent('Verification Request') + '&body=' + encodeURIComponent(body);
+  document.getElementById('sentHint').hidden = false;
+});
+</script>
+</body>
+</html>
