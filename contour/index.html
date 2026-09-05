@@ -109,7 +109,7 @@ tr.late td{color:#c9b7a4}
 </header>
 <div id="app"></div>
 <script>
-const KEY="asman.ops.v2";
+const KEY="asman.ops.v4";
 const STEPS=["need","pain","budget","authority","timing"];
 const PROMPTS={
   need:"Что необходимо закрыть — одной фразой.",
@@ -129,42 +129,13 @@ const HOUR=36e5, DAY=24*HOUR;
 const TABS=[["filter","Фильтр"],["leads","Лиды"],["queue","Очередь"],["principals","Принципалы"],["ledger","Расчёты"]];
 
 let state={mandates:[],leads:[],deals:[],events:[],lastTick:null};
-let view="queue";
+let view="filter";
 let file={need:"",pain:"",budgetUsd:null,budgetRaw:"",authority:"unknown",timing:"unknown"};
 let step="need", msgs=[{from:"bot",text:PROMPTS.need}], draft="", verdict=null, saved=false;
 let name="", contact="", mandateId="", openId=null, gross="", inflow="", mName="", mNiche="", mShare="50", mErr="";
 
 function uid(){return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
-function ago(h){return new Date(Date.now()-h*HOUR).toISOString()}
-function plusD(iso,d){const x=new Date(iso);x.setDate(x.getDate()+d);return x.toISOString()}
-function demo(){
-  const m1={id:"m-alem",name:"Alem Dental",niche:"Премиальная стоматология, Алматы",asmanSharePct:50,status:"active",createdAt:ago(40*24)};
-  const m2={id:"m-nomad",name:"Nomad Private",niche:"Family office / wealth",asmanSharePct:30,status:"active",createdAt:ago(18*24)};
-  const leads=[
-    {id:"l-daniyar",mandateId:m1.id,name:"Данияр Сулейменов",contact:"+7 701 445 12 08",need:"Запуск второй клиники, нужен поток на имплантацию.",pain:"Без потока операционная пустеет через квартал.",budgetUsd:14000,budgetRaw:"14 000 $",authority:"yes",timing:"now",verdict:"HOT",stage:"hot",brief:"Статус: квалифицирован\nЗапрос: вторая клиника\nБюджет: $14,000\nРешение: сам",createdAt:ago(6),lockedUntil:plusD(ago(6),365),lastTouchedAt:null,nextAction:"close",nextActionAt:ago(-18),sla:false},
-    {id:"l-aigul",mandateId:m1.id,name:"Айгуль Назарова",contact:"+7 777 290 44 11",need:"Перезапуск продаж ортодонтии.",pain:"Чек падает второй квартал подряд.",budgetUsd:9000,budgetRaw:"9 000 $",authority:"yes",timing:"now",verdict:"HOT",stage:"hot",brief:"Статус: квалифицирован\nЗапрос: ортодонтия\nБюджет: $9,000",createdAt:ago(32),lockedUntil:plusD(ago(32),365),lastTouchedAt:null,nextAction:"close",nextActionAt:ago(8),sla:true},
-    {id:"l-timur",mandateId:m2.id,name:"Тимур Рахимов",contact:"+7 705 118 73 40",need:"Привлечение двух family-клиентов в квартал.",pain:"Партнёр тормозит бюджет.",budgetUsd:22000,budgetRaw:"22 000 $",authority:"no",timing:"now",verdict:"WARM",stage:"warm",brief:"Статус: отложен\nБюджет: $22,000\nРешение: требуется согласование",createdAt:ago(5*24),lockedUntil:plusD(ago(5*24),365),lastTouchedAt:null,nextAction:"nurture",nextActionAt:ago(2*24),sla:false},
-    {id:"l-saule",mandateId:m2.id,name:"Сауле Ибраева",contact:"+7 747 601 09 22",need:"Закрытый контур на управление капиталом.",pain:"Текущий канал даёт неплатёжеспособных.",budgetUsd:18000,budgetRaw:"18 000 $",authority:"yes",timing:"later",verdict:"WARM",stage:"warm",brief:"Статус: отложен\nБюджет: $18,000\nСрок: позднее",createdAt:ago(20),lockedUntil:plusD(ago(20),365),lastTouchedAt:null,nextAction:"nurture",nextActionAt:ago(-52),sla:false},
-    {id:"l-noise",mandateId:null,name:"Асет",contact:"",need:"СММ за 50 тысяч, просто интересуюсь.",pain:"Ничего критичного.",budgetUsd:100,budgetRaw:"50 тыс тг",authority:"unknown",timing:"later",verdict:"NOISE",stage:"noise",brief:"Статус: нецелевой",createdAt:ago(10),lockedUntil:plusD(ago(10),365),lastTouchedAt:null,nextAction:null,nextActionAt:null,sla:false},
-    {id:"l-closed",mandateId:m1.id,name:"Марат Есенов",contact:"+7 702 333 18 90",need:"Поток на виниры, 8–12 пациентов в месяц.",pain:"Кабинеты простаивают после 15:00.",budgetUsd:11000,budgetRaw:"11 000 $",authority:"yes",timing:"now",verdict:"HOT",stage:"closed",brief:"Статус: квалифицирован\nБюджет: $11,000",createdAt:ago(12*24),lockedUntil:plusD(ago(12*24),365),lastTouchedAt:ago(10*24),nextAction:null,nextActionAt:null,sla:false}
-  ];
-  const deals=[
-    {id:"d-marat",leadId:"l-closed",mandateId:m1.id,gross:11000,inflow:5500,rate:0.1,dueAt:ago(2*24),paid:true,createdAt:ago(9*24)},
-    {id:"d-open",leadId:"l-closed",mandateId:m1.id,gross:11000,inflow:5500,rate:0.1,dueAt:ago(10),paid:false,createdAt:ago(4*24)}
-  ];
-  const events=[
-    {id:"e1",at:ago(12*24),leadId:"l-closed",kind:"lock",text:"Марат Есенов: квалифицирован. Фиксация на 12 месяцев."},
-    {id:"e2",at:ago(10*24),leadId:"l-closed",kind:"touch",text:"Марат Есенов: контакт зафиксирован."},
-    {id:"e3",at:ago(9*24),leadId:"l-closed",kind:"close",text:"Марат Есенов: поступление 5500$. Вознаграждение 10% — 3 рабочих дня."},
-    {id:"e4",at:ago(5*24),leadId:"l-timur",kind:"lock",text:"Тимур Рахимов: отложен. Фиксация на 12 месяцев."},
-    {id:"e5",at:ago(32),leadId:"l-aigul",kind:"lock",text:"Айгуль Назарова: квалифицирован. Фиксация на 12 месяцев."},
-    {id:"e6",at:ago(8),leadId:"l-aigul",kind:"sla",text:"Айгуль Назарова: квалифицирован, контакт в течение суток не состоялся."},
-    {id:"e7",at:ago(6),leadId:"l-daniyar",kind:"lock",text:"Данияр Сулейменов: квалифицирован. Фиксация на 12 месяцев."},
-    {id:"e8",at:ago(2*24),leadId:"l-timur",kind:"nurture",text:"Тимур Рахимов: уточнить лицо, принимающее решение, и срок старта."}
-  ];
-  return {mandates:[m1,m2],leads,deals,events,lastTick:new Date().toISOString()};
-}
-function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&(r.leads||[]).length){state={mandates:r.mandates||[],leads:r.leads||[],deals:r.deals||[],events:r.events||[],lastTick:r.lastTick||null};return}}catch(e){} state=demo(); save();}
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r)state={mandates:r.mandates||[],leads:r.leads||[],deals:r.deals||[],events:r.events||[],lastTick:r.lastTick||null}}catch(e){}}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function money(n){return "$"+Math.round(n).toLocaleString("en-US")}
 function plusH(iso,h){return new Date(new Date(iso).getTime()+h*HOUR).toISOString()}
@@ -290,9 +261,9 @@ function render(){
         <div class="funnel-band"><strong>${closed}</strong><div><em>Закрыто</em><span>конверсия ${conv(closed,after)}</span></div></div>
       </div>
       <h2>Очередь</h2>
-      ${items.length?`<ul class="queue">${items.map(i=>`<li><div><strong>${esc(i.lead.name)}</strong><span>${esc(i.label)}</span></div>${i.lead.stage==="hot"?`<button class="ghost" data-touch="${i.lead.id}">Контакт состоялся</button>`:""}</li>`).join("")}</ul>`:`<p class="empty">Очередь пуста.</p>`}
+      ${items.length?`<ul class="queue">${items.map(i=>`<li><div><strong>${esc(i.lead.name)}</strong><span>${esc(i.label)}</span></div>${i.lead.stage==="hot"?`<button class="ghost" data-touch="${i.lead.id}">Контакт состоялся</button>`:""}</li>`).join("")}</ul>`:`<p class="empty">Готово к работе. Новое обращение — в Фильтре.</p>`}
       <h2>Журнал</h2>
-      <ol class="log">${state.events.map(e=>`<li><time>${new Date(e.at).toLocaleString("ru-KZ")}</time>${esc(e.text)}</li>`).join("")}</ol>
+      ${state.events.length?`<ol class="log">${state.events.map(e=>`<li><time>${new Date(e.at).toLocaleString("ru-KZ")}</time>${esc(e.text)}</li>`).join("")}</ol>`:`<p class="empty">Пока пусто. Появится после первого обращения.</p>`}
     </div>`;
     app.querySelectorAll("[data-touch]").forEach(b=>b.onclick=()=>{touch(b.dataset.touch);render()});
   } else if(view==="filter"){
@@ -422,7 +393,7 @@ function touch(id){
 }
 function route(){
   try {
-    const h=(location.hash||"#queue").slice(1);
+    const h=(location.hash||"#filter").slice(1);
     view=TABS.some(t=>t[0]===h)?h:"queue";
     tick(); render();
   } catch (err) {
