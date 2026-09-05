@@ -78,7 +78,19 @@ h2{font-family:var(--serif);font-weight:400;font-size:18px;margin:36px 0 16px}
 .seats article{background:var(--panel);padding:24px;min-height:180px}
 .seats span{font-family:var(--serif);color:var(--ink-faint)}
 .seats h3{font-family:var(--serif);font-weight:400;font-size:22px;margin:12px 0 8px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:28px}
+.funnel-kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin:0 0 36px}
+.funnel-kpis div{background:var(--panel);padding:22px 24px}
+.funnel-kpis b{display:block;font-family:var(--serif);font-size:28px;font-weight:400;margin-bottom:8px}
+.funnel-kpis span{font-size:12.5px;color:var(--ink-dim)}
+.funnel-viz{display:flex;flex-direction:column;align-items:center;gap:7px;margin:0 0 28px}
+.funnel-band{display:flex;align-items:center;gap:28px;background:var(--panel);border:1px solid var(--line-strong);padding:16px 28px}
+.funnel-band:nth-child(1){width:100%}
+.funnel-band:nth-child(2){width:82%}
+.funnel-band:nth-child(3){width:64%}
+.funnel-band:nth-child(4){width:46%}
+.funnel-band strong{font-family:var(--serif);font-size:32px;font-weight:400;min-width:2.2ch}
+.funnel-band em{display:block;font-style:normal;font-size:14px}
+.funnel-band span{display:block;font-size:12px;color:var(--ink-dim);margin-top:4px}
 .stat{background:var(--panel);padding:24px}
 .stat b{display:block;font-family:var(--serif);font-size:28px;font-weight:400;margin-bottom:8px}
 .stat span{font-size:12.5px;color:var(--ink-dim)}
@@ -86,7 +98,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th{text-align:left;font-weight:500;color:var(--ink-faint);padding:10px 8px;border-bottom:1px solid var(--line)}
 td{padding:12px 8px;border-bottom:1px solid var(--line)}
 tr.late td{color:#c9b7a4}
-@media(max-width:900px){.desk,.board,.seats,.stats,.rules{grid-template-columns:1fr}}
+@media(max-width:900px){.desk,.board,.seats,.stats,.rules,.funnel-kpis{grid-template-columns:1fr}.funnel-band{width:100%!important}}
 </style>
 </head>
 <body>
@@ -97,7 +109,7 @@ tr.late td{color:#c9b7a4}
 </header>
 <div id="app"></div>
 <script>
-const KEY="asman.ops.v1";
+const KEY="asman.ops.v2";
 const STEPS=["need","pain","budget","authority","timing"];
 const PROMPTS={
   need:"Что необходимо закрыть — одной фразой.",
@@ -123,7 +135,36 @@ let step="need", msgs=[{from:"bot",text:PROMPTS.need}], draft="", verdict=null, 
 let name="", contact="", mandateId="", openId=null, gross="", inflow="", mName="", mNiche="", mShare="50", mErr="";
 
 function uid(){return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
-function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r)state={mandates:r.mandates||[],leads:r.leads||[],deals:r.deals||[],events:r.events||[],lastTick:r.lastTick||null}}catch(e){}}
+function ago(h){return new Date(Date.now()-h*HOUR).toISOString()}
+function plusD(iso,d){const x=new Date(iso);x.setDate(x.getDate()+d);return x.toISOString()}
+function demo(){
+  const m1={id:"m-alem",name:"Alem Dental",niche:"Премиальная стоматология, Алматы",asmanSharePct:50,status:"active",createdAt:ago(40*24)};
+  const m2={id:"m-nomad",name:"Nomad Private",niche:"Family office / wealth",asmanSharePct:30,status:"active",createdAt:ago(18*24)};
+  const leads=[
+    {id:"l-daniyar",mandateId:m1.id,name:"Данияр Сулейменов",contact:"+7 701 445 12 08",need:"Запуск второй клиники, нужен поток на имплантацию.",pain:"Без потока операционная пустеет через квартал.",budgetUsd:14000,budgetRaw:"14 000 $",authority:"yes",timing:"now",verdict:"HOT",stage:"hot",brief:"Статус: квалифицирован\nЗапрос: вторая клиника\nБюджет: $14,000\nРешение: сам",createdAt:ago(6),lockedUntil:plusD(ago(6),365),lastTouchedAt:null,nextAction:"close",nextActionAt:ago(-18),sla:false},
+    {id:"l-aigul",mandateId:m1.id,name:"Айгуль Назарова",contact:"+7 777 290 44 11",need:"Перезапуск продаж ортодонтии.",pain:"Чек падает второй квартал подряд.",budgetUsd:9000,budgetRaw:"9 000 $",authority:"yes",timing:"now",verdict:"HOT",stage:"hot",brief:"Статус: квалифицирован\nЗапрос: ортодонтия\nБюджет: $9,000",createdAt:ago(32),lockedUntil:plusD(ago(32),365),lastTouchedAt:null,nextAction:"close",nextActionAt:ago(8),sla:true},
+    {id:"l-timur",mandateId:m2.id,name:"Тимур Рахимов",contact:"+7 705 118 73 40",need:"Привлечение двух family-клиентов в квартал.",pain:"Партнёр тормозит бюджет.",budgetUsd:22000,budgetRaw:"22 000 $",authority:"no",timing:"now",verdict:"WARM",stage:"warm",brief:"Статус: отложен\nБюджет: $22,000\nРешение: требуется согласование",createdAt:ago(5*24),lockedUntil:plusD(ago(5*24),365),lastTouchedAt:null,nextAction:"nurture",nextActionAt:ago(2*24),sla:false},
+    {id:"l-saule",mandateId:m2.id,name:"Сауле Ибраева",contact:"+7 747 601 09 22",need:"Закрытый контур на управление капиталом.",pain:"Текущий канал даёт неплатёжеспособных.",budgetUsd:18000,budgetRaw:"18 000 $",authority:"yes",timing:"later",verdict:"WARM",stage:"warm",brief:"Статус: отложен\nБюджет: $18,000\nСрок: позднее",createdAt:ago(20),lockedUntil:plusD(ago(20),365),lastTouchedAt:null,nextAction:"nurture",nextActionAt:ago(-52),sla:false},
+    {id:"l-noise",mandateId:null,name:"Асет",contact:"",need:"СММ за 50 тысяч, просто интересуюсь.",pain:"Ничего критичного.",budgetUsd:100,budgetRaw:"50 тыс тг",authority:"unknown",timing:"later",verdict:"NOISE",stage:"noise",brief:"Статус: нецелевой",createdAt:ago(10),lockedUntil:plusD(ago(10),365),lastTouchedAt:null,nextAction:null,nextActionAt:null,sla:false},
+    {id:"l-closed",mandateId:m1.id,name:"Марат Есенов",contact:"+7 702 333 18 90",need:"Поток на виниры, 8–12 пациентов в месяц.",pain:"Кабинеты простаивают после 15:00.",budgetUsd:11000,budgetRaw:"11 000 $",authority:"yes",timing:"now",verdict:"HOT",stage:"closed",brief:"Статус: квалифицирован\nБюджет: $11,000",createdAt:ago(12*24),lockedUntil:plusD(ago(12*24),365),lastTouchedAt:ago(10*24),nextAction:null,nextActionAt:null,sla:false}
+  ];
+  const deals=[
+    {id:"d-marat",leadId:"l-closed",mandateId:m1.id,gross:11000,inflow:5500,rate:0.1,dueAt:ago(2*24),paid:true,createdAt:ago(9*24)},
+    {id:"d-open",leadId:"l-closed",mandateId:m1.id,gross:11000,inflow:5500,rate:0.1,dueAt:ago(10),paid:false,createdAt:ago(4*24)}
+  ];
+  const events=[
+    {id:"e1",at:ago(12*24),leadId:"l-closed",kind:"lock",text:"Марат Есенов: квалифицирован. Фиксация на 12 месяцев."},
+    {id:"e2",at:ago(10*24),leadId:"l-closed",kind:"touch",text:"Марат Есенов: контакт зафиксирован."},
+    {id:"e3",at:ago(9*24),leadId:"l-closed",kind:"close",text:"Марат Есенов: поступление 5500$. Вознаграждение 10% — 3 рабочих дня."},
+    {id:"e4",at:ago(5*24),leadId:"l-timur",kind:"lock",text:"Тимур Рахимов: отложен. Фиксация на 12 месяцев."},
+    {id:"e5",at:ago(32),leadId:"l-aigul",kind:"lock",text:"Айгуль Назарова: квалифицирован. Фиксация на 12 месяцев."},
+    {id:"e6",at:ago(8),leadId:"l-aigul",kind:"sla",text:"Айгуль Назарова: квалифицирован, контакт в течение суток не состоялся."},
+    {id:"e7",at:ago(6),leadId:"l-daniyar",kind:"lock",text:"Данияр Сулейменов: квалифицирован. Фиксация на 12 месяцев."},
+    {id:"e8",at:ago(2*24),leadId:"l-timur",kind:"nurture",text:"Тимур Рахимов: уточнить лицо, принимающее решение, и срок старта."}
+  ];
+  return {mandates:[m1,m2],leads,deals,events,lastTick:new Date().toISOString()};
+}
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r&&(r.leads||[]).length){state={mandates:r.mandates||[],leads:r.leads||[],deals:r.deals||[],events:r.events||[],lastTick:r.lastTick||null};return}}catch(e){} state=demo(); save();}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function money(n){return "$"+Math.round(n).toLocaleString("en-US")}
 function plusH(iso,h){return new Date(new Date(iso).getTime()+h*HOUR).toISOString()}
@@ -220,20 +261,31 @@ function render(){
   const app=document.getElementById("app");
   if(view==="queue"){
     const items=due();
+    const incoming=state.leads.length;
+    const after=state.leads.filter(l=>l.stage!=="noise").length;
+    const closing=state.leads.filter(l=>l.stage==="hot").length;
+    const closed=state.leads.filter(l=>l.stage==="closed").length;
+    const pipe=state.leads.filter(l=>l.stage==="hot").reduce((s,l)=>s+(l.budgetUsd||0),0);
+    const won=state.deals.filter(d=>d.paid).reduce((s,d)=>s+d.inflow*d.rate,0);
+    const conv=(a,b)=>b===0?"—":Math.round(a/b*100)+"%";
     app.innerHTML=`<div class="page">
       <p class="kicker">Контур</p>
-      <h1>Квалификация входящих. В работу — только платёжеспособный спрос.</h1>
-      <ol class="rules">
-        <li><span>01</span><strong>Фильтр</strong><p>Пять вопросов. Система относит обращение к квалифицированным, отложенным или нецелевым.</p></li>
-        <li><span>02</span><strong>Квалифицирован</strong><p>Контакт в течение суток. Иначе — нарушение срока.</p></li>
-        <li><span>03</span><strong>Отложен</strong><p>В закрытие не ставить. На третий день — уточнение решения и срока. На четырнадцатый — снятие.</p></li>
-        <li><span>04</span><strong>Нецелевой</strong><p>В работу не берём.</p></li>
-        <li><span>05</span><strong>Расчёт</strong><p>Поступление от закреплённого лида — вознаграждение 10% в течение 3 рабочих дней.</p></li>
-      </ol>
+      <h1>Воронка</h1>
+      <div class="funnel-kpis">
+        <div><b>${money(pipe)}</b><span>В работе, бюджет квалифицированных</span></div>
+        <div><b>${conv(after,incoming)}</b><span>Доля, прошедшая фильтр</span></div>
+        <div><b>${money(won)}</b><span>Вознаграждение получено</span></div>
+      </div>
+      <div class="funnel-viz">
+        <div class="funnel-band"><strong>${incoming}</strong><div><em>Обращения</em><span>весь входящий спрос</span></div></div>
+        <div class="funnel-band"><strong>${after}</strong><div><em>После фильтра</em><span>конверсия ${conv(after,incoming)}</span></div></div>
+        <div class="funnel-band"><strong>${closing}</strong><div><em>В закрытии</em><span>конверсия ${conv(closing,after)}</span></div></div>
+        <div class="funnel-band"><strong>${closed}</strong><div><em>Закрыто</em><span>конверсия ${conv(closed,after)}</span></div></div>
+      </div>
       <h2>Очередь</h2>
-      ${items.length?`<ul class="queue">${items.map(i=>`<li><div><strong>${esc(i.lead.name)}</strong><span>${esc(i.label)}</span></div>${i.lead.stage==="hot"?`<button class="ghost" data-touch="${i.lead.id}">Контакт состоялся</button>`:""}</li>`).join("")}</ul>`:`<p class="empty">Очередь пуста. Новые обращения — в Фильтре.</p>`}
+      ${items.length?`<ul class="queue">${items.map(i=>`<li><div><strong>${esc(i.lead.name)}</strong><span>${esc(i.label)}</span></div>${i.lead.stage==="hot"?`<button class="ghost" data-touch="${i.lead.id}">Контакт состоялся</button>`:""}</li>`).join("")}</ul>`:`<p class="empty">Очередь пуста.</p>`}
       <h2>Журнал</h2>
-      ${state.events.length?`<ol class="log">${state.events.map(e=>`<li><time>${new Date(e.at).toLocaleString("ru-KZ")}</time>${esc(e.text)}</li>`).join("")}</ol>`:`<p class="empty">Записей нет. Первое обращение появится после квалификации.</p>`}
+      <ol class="log">${state.events.map(e=>`<li><time>${new Date(e.at).toLocaleString("ru-KZ")}</time>${esc(e.text)}</li>`).join("")}</ol>
     </div>`;
     app.querySelectorAll("[data-touch]").forEach(b=>b.onclick=()=>{touch(b.dataset.touch);render()});
   } else if(view==="filter"){
