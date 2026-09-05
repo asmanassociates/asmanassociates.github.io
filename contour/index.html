@@ -109,7 +109,7 @@ tr.late td{color:#c9b7a4}
 </header>
 <div id="app"></div>
 <script>
-const KEY="asman.ops.v4";
+const KEY="asman.ops.v5";
 const STEPS=["need","pain","budget","authority","timing"];
 const PROMPTS={
   need:"Что необходимо закрыть — одной фразой.",
@@ -126,16 +126,18 @@ const NOT_OWNER=/(надо спросить|с боссом|с директор�
 const NOW=/(сейчас|сразу|на этой неделе|в этом месяце|сегодня|срочно|уже)/i;
 const LATER=/(потом|подума|когда[- ]нибудь|в следующем|не горит|позже|через полг)/i;
 const HOUR=36e5, DAY=24*HOUR;
-const TABS=[["filter","Фильтр"],["leads","Лиды"],["queue","Очередь"],["principals","Принципалы"],["ledger","Расчёты"]];
+const TABS=[["filter","Агент"],["leads","Лиды"],["queue","Очередь"],["notes","Заметки"],["principals","Принципалы"],["ledger","Расчёты"]];
+const OPENING="Asman. Одна фраза: что необходимо закрыть. Без презентаций.";
+const SLOT_LINE="Два рабочих окна: сегодня 18:00 или завтра 11:00. Если оба заняты — завтра 16:00. Напишите слот.";
 
-let state={mandates:[],leads:[],deals:[],events:[],lastTick:null};
+let state={mandates:[],leads:[],deals:[],events:[],meetings:[],notes:[],lastTick:null};
 let view="filter";
 let file={need:"",pain:"",budgetUsd:null,budgetRaw:"",authority:"unknown",timing:"unknown"};
-let step="need", msgs=[{from:"bot",text:PROMPTS.need}], draft="", verdict=null, saved=false;
-let name="", contact="", mandateId="", openId=null, gross="", inflow="", mName="", mNiche="", mShare="50", mErr="";
+let step="need", msgs=[{from:"bot",text:OPENING}], draft="", verdict=null, saved=false;
+let name="", contact="", slot=null, openId=null, gross="", inflow="", mName="", mNiche="", mShare="50", mErr="";
 
 function uid(){return Date.now().toString(36)+"-"+Math.random().toString(36).slice(2,8)}
-function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r)state={mandates:r.mandates||[],leads:r.leads||[],deals:r.deals||[],events:r.events||[],lastTick:r.lastTick||null}}catch(e){}}
+function load(){try{const r=JSON.parse(localStorage.getItem(KEY)||"null");if(r)state={mandates:r.mandates||[],leads:r.leads||[],deals:r.deals||[],events:r.events||[],meetings:r.meetings||[],notes:r.notes||[],lastTick:r.lastTick||null}}catch(e){}}
 function save(){localStorage.setItem(KEY,JSON.stringify(state))}
 function money(n){return "$"+Math.round(n).toLocaleString("en-US")}
 function plusH(iso,h){return new Date(new Date(iso).getTime()+h*HOUR).toISOString()}
@@ -219,7 +221,65 @@ function due(){
 }
 function resetFilter(){
   file={need:"",pain:"",budgetUsd:null,budgetRaw:"",authority:"unknown",timing:"unknown"};
-  step="need"; msgs=[{from:"bot",text:PROMPTS.need}]; draft=""; verdict=null; saved=false; name=""; contact=""; mandateId="";
+  step="need"; msgs=[{from:"bot",text:OPENING}]; draft=""; verdict=null; saved=false; name=""; contact=""; slot=null;
+}
+function parseIdentity(text){
+  const t=text.trim(); const phone=t.match(/(\+?\d[\d\s\-()]{8,}\d)/);
+  const c=phone?phone[1].replace(/\s+/g," ").trim():t;
+  let n=phone?t.replace(phone[0],"").replace(/[,;|/]+/g," ").trim():t;
+  n=n.replace(/\s+/g," "); if(n.length<2)n="Без имени"; return {name:n,contact:c};
+}
+function parseSlot(text){
+  const t=text.toLowerCase();
+  if(/18|вечер|сегодня/.test(t)&&!/завтра/.test(t))return "сегодня 18:00";
+  if(/11|утро/.test(t))return "завтра 11:00";
+  if(/16|обед/.test(t))return "завтра 16:00";
+  if(/завтра/.test(t))return "завтра 11:00";
+  if(t.length>3)return t.trim(); return null;
+}
+function negotiate(text){
+  const t=text.toLowerCase();
+  if(/(нет|без возраж|ок|хорошо|согласен|давай|ставим)/i.test(t))return "Принято. Встреча в календаре, заметка записана. На линии — только решение и цифра.";
+  if(/(дорог|скидк|дешев)/i.test(t))return "Цены нет. Есть доля от выручки, которую приведём. Фикса не берём.";
+  if(/(подума|позже|не сейч)/i.test(t))return "Слот держим 24 часа. После — снимаем.";
+  if(/(партнёр|директор|согласов|спрошу)/i.test(t))return "На встречу нужен тот, кто принимает решение по оплате.";
+  if(/(презентац|коммерч|прайс|отправ)/i.test(t))return "Презентаций не высылаем. Коротко на звонке. Либо работаем, либо нет.";
+  if(/(гарант|результат)/i.test(t))return "Гарантия — отсутствие фикса. Если потока нет, вы нам ничего не должны.";
+  return "Зафиксировал. На встрече разберём.";
+}
+function persistAgent(){
+  const now=new Date(), createdAt=now.toISOString(), locked=new Date(now); locked.setMonth(locked.getMonth()+12);
+  const stage=verdict.verdict==="HOT"?"hot":verdict.verdict==="WARM"?"warm":"noise";
+  const body=[brief(file,verdict.verdict,verdict.reasons),`Имя: ${name||"—"}`,`Контакт: ${contact||"—"}`,`Встреча: ${slot||"не ставили"}`].join("\n");
+  const row={id:uid(),mandateId:null,name:name.trim()||"Без имени",contact:contact.trim(),need:file.need,pain:file.pain,budgetUsd:file.budgetUsd,budgetRaw:file.budgetRaw,authority:file.authority,timing:file.timing,verdict:verdict.verdict,stage,brief:body,createdAt,lockedUntil:locked.toISOString(),lastTouchedAt:null,sla:false,nextAction:stage==="hot"?"close":stage==="warm"?"nurture":null,nextActionAt:stage==="hot"?plusH(createdAt,24):stage==="warm"?plusH(createdAt,72):null};
+  const events=[{id:"lock:"+row.id,at:createdAt,leadId:row.id,kind:"lock",text:`${row.name}: ${RU[row.verdict].toLowerCase()}. Фиксация на 12 месяцев.`},...state.events];
+  const meetings=slot?[{id:uid(),leadId:row.id,slot,createdAt},...state.meetings]:state.meetings;
+  if(slot)events.unshift({id:"meet:"+row.id,at:createdAt,leadId:row.id,kind:"meet",text:`${row.name}: встреча — ${slot}.`});
+  const note={id:uid(),leadId:row.id,title:`${row.name} · ${RU[row.verdict].toLowerCase()}`,body,createdAt};
+  events.unshift({id:"note:"+note.id,at:createdAt,leadId:row.id,kind:"note",text:"Заметка: "+note.title});
+  state={...state,leads:[row,...state.leads],meetings,notes:[note,...state.notes],events:events.slice(0,80)}; save(); saved=true;
+}
+function agentTurn(text){
+  const t=text.trim(); if(!t||step==="done")return;
+  msgs=[...msgs,{from:"lead",text:t}];
+  if(["need","pain","budget","authority","timing"].includes(step)){
+    file=ingest(file,step,t); const i=STEPS.indexOf(step); const nxt=i<STEPS.length-1?STEPS[i+1]:"done";
+    if(nxt!=="done"){step=nxt;msgs.push({from:"bot",text:PROMPTS[nxt]});return}
+    verdict=score(file);
+    if(verdict.verdict==="NOISE"){step="done";msgs.push({from:"bot",text:HINT.NOISE});persistAgent();return}
+    if(verdict.verdict==="WARM"){step="identity";msgs.push({from:"bot",text:HINT.WARM+" Имя и WhatsApp — одной строкой. Встречу не ставлю."});return}
+    step="identity"; msgs.push({from:"bot",text:HINT.HOT+" Имя и WhatsApp — одной строкой."}); return;
+  }
+  if(step==="identity"){
+    const id=parseIdentity(t); name=id.name; contact=id.contact;
+    if(verdict.verdict==="HOT"){step="slot";msgs.push({from:"bot",text:SLOT_LINE});return}
+    step="done"; msgs.push({from:"bot",text:"Зафиксировал. В очередь не ставлю, пока не ясно решение."}); persistAgent(); return;
+  }
+  if(step==="slot"){
+    const s=parseSlot(t); if(!s){msgs.push({from:"bot",text:SLOT_LINE});return}
+    slot=s; step="negotiate"; msgs.push({from:"bot",text:`Слот: ${s}. Возражение — сейчас, одной фразой. Если нет — напишите «нет».`}); return;
+  }
+  if(step==="negotiate"){step="done"; msgs.push({from:"bot",text:negotiate(t)}); persistAgent()}
 }
 function esc(s){
   return String(s||"").replace(/[&<>"]/g, function(c){
@@ -260,6 +320,8 @@ function render(){
         <div class="funnel-band"><strong>${closing}</strong><div><em>В закрытии</em><span>конверсия ${conv(closing,after)}</span></div></div>
         <div class="funnel-band"><strong>${closed}</strong><div><em>Закрыто</em><span>конверсия ${conv(closed,after)}</span></div></div>
       </div>
+      <h2>Встречи</h2>
+      ${state.meetings.length?`<ul class="queue">${state.meetings.map(m=>{const lead=state.leads.find(l=>l.id===m.leadId);return `<li><div><strong>${esc(lead?lead.name:"лид")}</strong><span>${esc(m.slot)}</span></div></li>`}).join("")}</ul>`:`<p class="empty">Слотов нет. Агент ставит встречу после квалификации.</p>`}
       <h2>Очередь</h2>
       ${items.length?`<ul class="queue">${items.map(i=>`<li><div><strong>${esc(i.lead.name)}</strong><span>${esc(i.label)}</span></div>${i.lead.stage==="hot"?`<button class="ghost" data-touch="${i.lead.id}">Контакт состоялся</button>`:""}</li>`).join("")}</ul>`:`<p class="empty">Готово к работе. Новое обращение — в Фильтре.</p>`}
       <h2>Журнал</h2>
@@ -267,50 +329,31 @@ function render(){
     </div>`;
     app.querySelectorAll("[data-touch]").forEach(b=>b.onclick=()=>{touch(b.dataset.touch);render()});
   } else if(view==="filter"){
-    const gates=[["need","Запрос",file.need.length>0],["pain","Последствия",file.pain.length>0],["budget","Бюджет",file.budgetUsd!==null&&file.budgetUsd>=2000],["authority","Решение",file.authority==="yes"],["timing","Срок",file.timing==="now"]];
+    const gates=[["need","Запрос"],["pain","Последствия"],["budget","Бюджет"],["authority","Решение"],["timing","Срок"],["identity","Контакт"],["slot","Встреча"],["negotiate","Переговоры"]];
+    const order=gates.map(g=>g[0]); const nowIdx=order.indexOf(step);
     app.innerHTML=`<div class="desk">
       <aside>
-        <p class="kicker">Протокол</p>
-        <ol>${gates.map(g=>`<li class="${g[2]?"on":""} ${step===g[0]?"now":""}">${g[1]}</li>`).join("")}</ol>
-        <p class="note">Пять вопросов. Квалифицированным — контакт в течение суток. Отложенных в закрытие не ставим. Нецелевых не берём. Порог бюджета — $2,000.</p>
+        <p class="kicker">Агент</p>
+        <ol>${gates.map((g,i)=>`<li class="${(nowIdx>i||step==="done")?"on":""} ${step===g[0]?"now":""}">${g[1]}</li>`).join("")}</ol>
+        <p class="note">Пишете ответ человека. Агент фильтрует, ставит слот, держит переговоры и пишет заметку. Порог — $2,000.</p>
         <button class="ghost" id="reset" style="margin-top:20px">Новое обращение</button>
       </aside>
       <section>
-        <div class="desk-log">${msgs.map(m=>`<p class="${m.from==="lead"?"lead":""}"><i>${m.from==="bot"?"Фильтр":"Обращение"}</i>${esc(m.text)}</p>`).join("")}</div>
-        ${verdict?`<article class="card" data-v="${verdict.verdict}">
+        <div class="desk-log">${msgs.map(m=>`<p class="${m.from==="lead"?"lead":""}"><i>${m.from==="bot"?"Агент":"Обращение"}</i>${esc(m.text)}</p>`).join("")}</div>
+        ${verdict&&step==="done"?`<article class="card" data-v="${verdict.verdict}">
           <h2>${RU[verdict.verdict]}</h2>
-          <p class="note">${HINT[verdict.verdict]}</p>
+          <p class="note">${slot?"Встреча: "+esc(slot)+". ":""}Заметка в журнале.</p>
           <pre>${esc(brief(file,verdict.verdict,verdict.reasons))}</pre>
-          ${saved?`<p class="note" style="margin-top:16px">Зафиксировано. Карточка в Лидах.</p>`:`<form class="save" id="lock">
-            <input id="nm" placeholder="Имя" value="${esc(name)}">
-            <input id="ct" placeholder="WhatsApp" value="${esc(contact)}">
-            <select id="md"><option value="">Принципал</option>${active.map(m=>`<option value="${m.id}" ${mandateId===m.id?"selected":""}>${esc(m.name)}</option>`).join("")}</select>
-            <button>Зафиксировать на 12 месяцев</button>
-          </form>`}
-        </article>`:`<form class="composer" id="send"><input id="draft" placeholder="Ответ" autocomplete="off"><button>Передать</button></form>`}
+        </article>`:`<form class="composer" id="send"><input id="draft" placeholder="Ответ человека" autocomplete="off"><button>Передать</button></form>`}
       </section>
     </div>`;
     const r=document.getElementById("reset"); if(r)r.onclick=()=>{resetFilter();render()};
     const send=document.getElementById("send");
-    if(send)send.onsubmit=e=>{
-      e.preventDefault();
-      const text=document.getElementById("draft").value.trim(); if(!text||step==="done")return;
-      file=ingest(file,step,text); const i=STEPS.indexOf(step); const nxt=i<STEPS.length-1?STEPS[i+1]:"done";
-      msgs=[...msgs,{from:"lead",text}];
-      if(nxt==="done"){verdict=score(file);step="done";msgs.push({from:"bot",text:HINT[verdict.verdict]})}
-      else{step=nxt;msgs.push({from:"bot",text:PROMPTS[nxt]})}
-      render();
-    };
-    const lock=document.getElementById("lock");
-    if(lock)lock.onsubmit=e=>{
-      e.preventDefault();
-      name=document.getElementById("nm").value; contact=document.getElementById("ct").value; mandateId=document.getElementById("md").value;
-      const now=new Date(), createdAt=now.toISOString(), locked=new Date(now); locked.setMonth(locked.getMonth()+12);
-      const stage=verdict.verdict==="HOT"?"hot":verdict.verdict==="WARM"?"warm":"noise";
-      const row={id:uid(),mandateId:mandateId||null,name:name.trim()||"Без имени",contact:contact.trim(),need:file.need,pain:file.pain,budgetUsd:file.budgetUsd,budgetRaw:file.budgetRaw,authority:file.authority,timing:file.timing,verdict:verdict.verdict,stage,brief:brief(file,verdict.verdict,verdict.reasons),createdAt,lockedUntil:locked.toISOString(),lastTouchedAt:null,sla:false,nextAction:stage==="hot"?"close":stage==="warm"?"nurture":null,nextActionAt:stage==="hot"?plusH(createdAt,24):stage==="warm"?plusH(createdAt,72):null};
-      const event={id:"lock:"+row.id,at:createdAt,leadId:row.id,kind:"lock",text:`${row.name}: ${RU[row.verdict].toLowerCase()}. Фиксация на 12 месяцев.`};
-      state={...state,leads:[row,...state.leads],events:[event,...state.events].slice(0,80)}; save(); saved=true; render();
-    };
+    if(send)send.onsubmit=e=>{e.preventDefault(); agentTurn(document.getElementById("draft").value); render()};
+  } else if(view==="notes"){
+    app.innerHTML=`<div class="page"><p class="kicker">Заметки</p><h1>Журнал агента</h1>
+      ${state.notes.length===0?`<p class="empty">Пусто. Заметка появится, когда агент закроет диалог.</p>`:`<ul class="log">${state.notes.map(n=>`<li><time>${new Date(n.createdAt).toLocaleString("ru-KZ")}</time><strong>${esc(n.title)}</strong><pre>${esc(n.body)}</pre></li>`).join("")}</ul>`}
+    </div>`;
   } else if(view==="leads"){
     const cols=["hot","warm","noise","closed"];
     const lead=state.leads.find(l=>l.id===openId);
