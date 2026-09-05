@@ -250,7 +250,14 @@ function resetFilter(){
   file={need:"",pain:"",budgetUsd:null,budgetRaw:"",authority:"unknown",timing:"unknown"};
   step="need"; msgs=[{from:"bot",text:PROMPTS.need}]; draft=""; verdict=null; saved=false; name=""; contact=""; mandateId="";
 }
-function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&","<":"<",">":">",'"':"""}[c]))}
+function esc(s){
+  return String(s||"").replace(/[&<>"]/g, function(c){
+    if(c==="&") return "\x26amp;";
+    if(c==="<") return "\x26lt;";
+    if(c===">") return "\x26gt;";
+    return "\x26quot;";
+  });
+}
 
 function render(){
   const active=state.mandates.filter(m=>m.status==="active");
@@ -414,9 +421,14 @@ function touch(id){
   save();
 }
 function route(){
-  const h=(location.hash||"#queue").slice(1);
-  view=TABS.some(t=>t[0]===h)?h:"queue";
-  tick(); render();
+  try {
+    const h=(location.hash||"#queue").slice(1);
+    view=TABS.some(t=>t[0]===h)?h:"queue";
+    tick(); render();
+  } catch (err) {
+    document.getElementById("app").innerHTML="<p class='empty'>Ошибка контура. Обновите страницу.</p>";
+    console.error(err);
+  }
 }
 load(); window.onhashchange=route; route();
 </script>
