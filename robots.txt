@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /dogovor.html
+Disallow: /contour
+Disallow: /work
+Disallow: /logo-aa.html
+Disallow: /logo-line.html
